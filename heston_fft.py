@@ -4,7 +4,7 @@ import numpy as np
 i = 1j
 
 # The generic characteristic function for carr and madan method
-def heston_characteristic_function_cm(phi, S, tau, kappa, theta, sigma, rho, v0, r, trap): 
+def heston_characteristic_function_cm(phi, S, tau, kappa, theta, sigma, rho, v0, r, q, trap): 
     x = np.log(S)
     a = kappa*theta
 
@@ -18,29 +18,29 @@ def heston_characteristic_function_cm(phi, S, tau, kappa, theta, sigma, rho, v0,
         c = 1/g
         D = (b-rho*sigma*i*phi-d)/sigma**2*((1-np.exp(-d*tau))/(1-c*np.exp(-d*tau)))
         G = (1- c*np.exp(-d*tau))/(1-c)
-        C = r*i*phi*tau+a/sigma**2*((b-rho*sigma*i*phi-d)*tau-2*np.log(G))
+        C = (r-q)*i*phi*tau+a/sigma**2*((b-rho*sigma*i*phi-d)*tau-2*np.log(G))
     else:
         G = (1- g*np.exp(d*tau))/(1-g)
-        C = r*i*phi*tau+a/sigma**2*((b-rho*sigma*i*phi+d)*tau-2*np.log(G))
+        C = (r-q)*i*phi*tau+a/sigma**2*((b-rho*sigma*i*phi+d)*tau-2*np.log(G))
         D = (b-rho*sigma*i*phi+d)/sigma**2*((1-np.exp(d*tau))/(1-g*np.exp(d*tau)))
     
     return np.exp(C+D*v0+i*phi*x)
 
 # The integrand for the option price calculation using carr and madan method
-def heston_call_integrand_cm(u, alpha, S, K, tau, kappa, theta, sigma, rho, v0, r, trap):
-    I = np.exp(-i*u*np.log(K))*np.exp(-r*tau)*heston_characteristic_function_cm(u-(alpha+1)*i, S, tau, kappa, theta, sigma, rho, v0, r, trap)/(alpha**2+alpha-u**2+i*u*(2*alpha+1))
+def heston_call_integrand_cm(u, alpha, S, K, tau, kappa, theta, sigma, rho, v0, r, q, trap):
+    I = np.exp(-i*u*np.log(K))*np.exp(-r*tau)*heston_characteristic_function_cm(u-(alpha+1)*i, S, tau, kappa, theta, sigma, rho, v0, r, q, trap)/(alpha**2+alpha-u**2+i*u*(2*alpha+1))
     
     return np.real(I)
 
 # The main function to calculate the option price using the Heston model
 # We use trapezoidal rule to calculate the integral. Other numerical integration methods can also be used
-def heston_call_price_cm(alpha, S, K, tau, kappa, theta, sigma, rho, v0, r, trap, Lu, Uu, du):
+def heston_call_price_cm(alpha, S, K, tau, kappa, theta, sigma, rho, v0, r, q, trap, Lu, Uu, du):
     u = np.arange(Lu, Uu, du)
-    integrand = heston_call_integrand_cm(u, alpha, S, K, tau, kappa, theta, sigma, rho, v0, r, trap)
+    integrand = heston_call_integrand_cm(u, alpha, S, K, tau, kappa, theta, sigma, rho, v0, r, q, trap)
     
     return np.exp(-alpha*np.log(K))*np.trapezoid(integrand, u)/np.pi
 
-def heston_call_FFT(N, eta, alpha, S, tau, kappa, theta, sigma, rho, v0, r, trap):
+def heston_call_FFT(N, eta, alpha, S, tau, kappa, theta, sigma, rho, v0, r, q, trap):
     j = np.arange(N)
     s0 = np.log(S)
     v = np.arange(N)*eta
@@ -52,11 +52,14 @@ def heston_call_FFT(N, eta, alpha, S, tau, kappa, theta, sigma, rho, v0, r, trap
     w[0] = 0.5
     w[-1] = 0.5 
 
-    f2 = heston_characteristic_function_cm(v-(alpha+1)*i, S, tau, kappa, theta, sigma, rho, v0, r, trap)
+    f2 = heston_characteristic_function_cm(v-(alpha+1)*i, S, tau, kappa, theta, sigma, rho, v0, r, q, trap)
     psi = np.exp(-r*tau)*f2/(alpha**2+alpha-v**2+i*v*(2*alpha+1))
 
     x = np.exp(i*(b-s0)*v)*psi*w
     e = np.fft.fft(x)
 
-    callFFT = eta*np.exp(-alpha*k)/np.pi*np.real(e)
+    prices = eta*np.exp(-alpha*k)/np.pi*np.real(e)
+    strikes = np.exp(k)
+
+    return strikes, prices
  
