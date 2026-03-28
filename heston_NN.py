@@ -9,10 +9,9 @@ X = gd.data[:,:-1]
 y = gd.data[:,-1]
 
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2, random_state=1) # Random state is set for reproducibility
-
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2, random_state=1) 
 # ---------------------------------------------------------------------------
-# MLP for predication 
+# MLP for prediction 
 class HestonNN(nn.Module):
     def __init__(self, input_size=9, hidden_size=64, output_size=1):
         super().__init__()
@@ -32,7 +31,7 @@ class HestonNN(nn.Module):
 # Create the model
 model = HestonNN()
 
-loss_function = nn.MSELoss()
+criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 # Convert the data to PyTorch tensors
@@ -40,11 +39,11 @@ X_train = torch.tensor(X_train, dtype=torch.float32)
 y_train = torch.tensor(y_train, dtype=torch.float32).view(-1, 1) # Reshape y to be a column vector
 
 # Train the model
-for epoch in range(110):
+for epoch in range(100):
     model.train()
     optimizer.zero_grad()
     predictions = model(X_train)
-    loss = loss_function(predictions, y_train)
+    loss = criterion(predictions, y_train)
     loss.backward()
     optimizer.step()
 
@@ -59,7 +58,7 @@ y_test = torch.tensor(y_test, dtype=torch.float32).view(-1, 1)
 
 with torch.no_grad():
     test_predictions = model(X_test) 
-    test_loss = loss_function(test_predictions, y_test)
+    test_loss = criterion(test_predictions, y_test)
 
 print(f"Test loss: {test_loss.item()}")
 
