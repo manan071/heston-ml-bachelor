@@ -40,6 +40,7 @@ def heston_call_price_cm(alpha, S, K, tau, kappa, theta, sigma, rho, v0, r, q, t
     
     return np.exp(-alpha*np.log(K))*np.trapezoid(integrand, u)/np.pi
 
+# Using FFT to calculate the option price for a range of strikes. The strikes and corresponding prices are returned as arrays
 def heston_call_FFT(N, eta, alpha, S, tau, kappa, theta, sigma, rho, v0, r, q, trap):
     j = np.arange(N)
     s0 = np.log(S)
