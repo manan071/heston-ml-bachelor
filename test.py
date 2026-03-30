@@ -41,3 +41,11 @@ strikes, prices = hfft.heston_call_FFT(N=1024, eta=0.0977, alpha=1.5, S=S, tau=t
 log_moneyness = np.log(strikes/S)
 
 print(log_moneyness[509:516], prices[509:516])
+
+print()
+
+# Test for the data generation process
+print(gd.data.shape)
+print(gd.data.min(axis=0))
+print(gd.data.max(axis=0))
+print(gd.data.mean(axis=0)) 

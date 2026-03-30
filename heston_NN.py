@@ -10,10 +10,10 @@ y = gd.data[:,-1]
 
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2, random_state=1) 
-# ---------------------------------------------------------------------------
+
 # MLP for prediction 
 class HestonNN(nn.Module):
-    def __init__(self, input_size=9, hidden_size=64, output_size=1):
+    def __init__(self, input_size=9, hidden_size=128, output_size=1):
         super().__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
@@ -39,7 +39,7 @@ X_train = torch.tensor(X_train, dtype=torch.float32)
 y_train = torch.tensor(y_train, dtype=torch.float32).view(-1, 1) # Reshape y to be a column vector
 
 # Train the model
-for epoch in range(100):
+for epoch in range(110):
     model.train()
     optimizer.zero_grad()
     predictions = model(X_train)
@@ -69,4 +69,3 @@ with torch.no_grad():
     nn_price  = model(test_input)
 
 print(nn_price.item()*100)
-
