@@ -21,7 +21,7 @@ rows = []
 # Loop to create training data
 for i in range(20000):
     tau, kappa, theta, sigma, rho, v0, r, q = random_parameters()
-    strikes, prices = hf.heston_call_FFT(N=1024, eta=0.0977, alpha=1.5, S=S, tau=tau, kappa=kappa, theta=theta
+    strikes, prices = hf.heston_call_FFT(N=4096, eta=0.25, alpha=1.5, S=S, tau=tau, kappa=kappa, theta=theta
                    , sigma=sigma, rho=rho, v0=v0, r=r, q=q, trap=1)
     
     log_moneyness = np.log(strikes/S) # Option prices depend on relative position (moneyness) and not the absolute prices

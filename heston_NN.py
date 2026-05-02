@@ -1,5 +1,3 @@
-from random import random
-
 import numpy as np
 import generate_data as gd
 import torch 
@@ -9,7 +7,7 @@ from sklearn.preprocessing import StandardScaler
 
 # MLP for prediction 
 class HestonNN(nn.Module):
-    def __init__(self, input_size=9, hidden_size=256, output_size=1):
+    def __init__(self, input_size=9, hidden_size=128, output_size=1):
         super().__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
