@@ -1,2 +1,4 @@
 heston_data.txt
-__pycache__/*
+__pycache__/generate_data.cpython-313.pyc
+__pycache__/heston_fft.cpython-313.pyc
+__pycache__/heston_model.cpython-313.pyc
