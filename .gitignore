@@ -1,2 +1,4 @@
 heston_data.txt
 __pycache__/*
+1-heston_nn.pth
+1-training_log.txt
