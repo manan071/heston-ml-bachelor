@@ -1,12 +1,4 @@
 heston_data.txt
 __pycache__/*
-1-heston_nn.pth
-1-training_log.txt
-2-heston_nn.pth
-2-training_log.txt
-3-heston_nn.pth
-3-training_log.txt
-4-heston_nn.pth
-4-training_log.txt
-5-heston_nn.pth
-5-training_log.txt
+*-heston_nn.pth
+*-training_log.txt
