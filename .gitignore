@@ -1,11 +1,6 @@
 heston_data.txt
-<<<<<<< HEAD
 __pycache__/
 *.pyc
-1-heston_nn.pth
-1-training_log.txt
-=======
-__pycache__/*
-*-heston_nn.pth
+
+*.pth
 *-training_log.txt
->>>>>>> tuning-NN-model
