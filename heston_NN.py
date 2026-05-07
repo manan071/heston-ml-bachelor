@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+import time 
 
 # Load the generated data
 data = np.loadtxt("heston_data.txt", delimiter=",")
@@ -39,8 +40,9 @@ if __name__ == "__main__":
     X = data[:,:-1]
     y = data[:,-1]
 
-    # Split the data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2, random_state=1) 
+    # Split the data into training set, testing set and validation set
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=1)
+    X_test, X_val, y_test, y_val = train_test_split(X_temp, y_temp, test_size=0.5, random_state=1)
 
     # Standardize the features and target variable
     scaler_X = StandardScaler()
@@ -52,6 +54,9 @@ if __name__ == "__main__":
     X_test = scaler_X.transform(X_test)
     y_test = scaler_y.transform(y_test.reshape(-1,1))
 
+    X_val = scaler_X.transform(X_val)
+    y_val = scaler_y.transform(y_val.reshape(-1,1))
+
     # Create DataLoaders for mini-batch training
     train_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1024, shuffle=True)
@@ -60,16 +65,22 @@ if __name__ == "__main__":
     model = HestonNN().to(device)
 
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001) 
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=20)
 
     # Convert test data to PyTorch tensors
     X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
     y_test = torch.tensor(y_test, dtype=torch.float32).view(-1, 1).to(device)
 
+    # Convert validation data to PyTorch tensors
+    X_val = torch.tensor(X_val, dtype=torch.float32).to(device)
+    y_val = torch.tensor(y_val, dtype=torch.float32).view(-1, 1).to(device)
+
     # Train the model
     best_loss = float('inf')
     patience_counter = 0
+
+    start_time = time.time()
 
     for epoch in range(150):
         model.train()
@@ -86,20 +97,20 @@ if __name__ == "__main__":
 
             epoch_loss += loss.item() * X_batch.size(0)
 
-        # Test the model 
+        # Evaluate the model on the validation set 
         model.eval()
 
         with torch.no_grad():
-            test_predictions = model(X_test) 
-            test_loss = criterion(test_predictions, y_test)
+            val_predictions = model(X_val)
+            val_loss = criterion(val_predictions, y_val)
 
-        scheduler.step(test_loss)   
+        scheduler.step(val_loss)   
 
         if epoch % 10 == 0:
             training_log = (
                 f"Epoch {epoch}, "
                 f"Loss: {epoch_loss / len(train_loader.dataset)}, "
-                f"Test Loss: {test_loss.item()}, "
+                f"Validation Loss: {val_loss.item()}, "
                 f"LR: {optimizer.param_groups[0]['lr']}"
             )
             print(training_log)
@@ -108,9 +119,9 @@ if __name__ == "__main__":
             with open("training_log.txt", "a") as f:
                 f.write(training_log + "\n")
 
-        # Early stopping based on test loss and save the best model
-        if test_loss.item() < best_loss:
-            best_loss = test_loss.item()
+        # Early stopping based on validation loss and save the best model
+        if val_loss.item() < best_loss:
+            best_loss = val_loss.item()
             patience_counter = 0
 
             # Save the model and scalers
@@ -124,6 +135,9 @@ if __name__ == "__main__":
             if patience_counter >= 50:  # Early stopping after 50 epochs without improvement
                 print(f"Early stopping triggered at epoch {epoch}")
                 break
+
+    end_time = time.time()
+    print(f"Training completed in {(end_time - start_time)/60:.2f} minutes.")
 
     print()
 
