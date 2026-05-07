@@ -1,9 +1,15 @@
 import numpy as np
-import generate_data as gd
 import torch 
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+
+# Load the generated data
+data = np.loadtxt("heston_data.txt", delimiter=",")
+
+# Set GPU
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"Using device: {device}")
 
 # MLP for prediction 
 class HestonNN(nn.Module):
@@ -30,8 +36,8 @@ if __name__ == "__main__":
     torch.manual_seed(50)
 
     # Load the generated data
-    X = gd.data[:,:-1]
-    y = gd.data[:,-1]
+    X = data[:,:-1]
+    y = data[:,-1]
 
     # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2, random_state=1) 
@@ -46,73 +52,116 @@ if __name__ == "__main__":
     X_test = scaler_X.transform(X_test)
     y_test = scaler_y.transform(y_test.reshape(-1,1))
 
+    # Create DataLoaders for mini-batch training
+    train_dataset = torch.utils.data.TensorDataset(torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.float32))
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1024, shuffle=True)
+
     # Create the model
-    model = HestonNN()
+    model = HestonNN().to(device)
 
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001) 
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=20)
 
-    # Convert the data to PyTorch tensors
-    X_train = torch.tensor(X_train, dtype=torch.float32)
-    y_train = torch.tensor(y_train, dtype=torch.float32).view(-1, 1) # Reshape y to be a column vector
+    # Convert test data to PyTorch tensors
+    X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
+    y_test = torch.tensor(y_test, dtype=torch.float32).view(-1, 1).to(device)
 
     # Train the model
-    for epoch in range(1000):
+    best_loss = float('inf')
+    patience_counter = 0
+
+    for epoch in range(150):
         model.train()
-        optimizer.zero_grad()
-        predictions = model(X_train)
-        loss = criterion(predictions, y_train)
-        loss.backward()
-        optimizer.step()
+        epoch_loss = 0.0
+
+        for X_batch, y_batch in train_loader:
+            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+
+            optimizer.zero_grad()
+            predictions = model(X_batch)
+            loss = criterion(predictions, y_batch)
+            loss.backward()
+            optimizer.step()
+
+            epoch_loss += loss.item() * X_batch.size(0)
+
+        # Test the model 
+        model.eval()
+
+        with torch.no_grad():
+            test_predictions = model(X_test) 
+            test_loss = criterion(test_predictions, y_test)
+
+        scheduler.step(test_loss)   
 
         if epoch % 10 == 0:
-            print(f"Epoch {epoch}, Loss: {loss.item()}")
+            training_log = (
+                f"Epoch {epoch}, "
+                f"Loss: {epoch_loss / len(train_loader.dataset)}, "
+                f"Test Loss: {test_loss.item()}, "
+                f"LR: {optimizer.param_groups[0]['lr']}"
+            )
+            print(training_log)
 
-    # Test the model 
-    model.eval()
+            # Write training log to file
+            with open("training_log.txt", "a") as f:
+                f.write(training_log + "\n")
 
-    X_test = torch.tensor(X_test, dtype=torch.float32)
-    y_test = torch.tensor(y_test, dtype=torch.float32).view(-1, 1)
+        # Early stopping based on test loss and save the best model
+        if test_loss.item() < best_loss:
+            best_loss = test_loss.item()
+            patience_counter = 0
 
-    with torch.no_grad():
-        test_predictions = model(X_test) 
-        test_loss = criterion(test_predictions, y_test)
-
-    print(f"Test loss: {test_loss.item()}")
-
-    # Save the model and scalers
-    torch.save({
-        'model_state_dict': model.state_dict(),
-        'scaler_X': scaler_X,
-        'scaler_y': scaler_y
-    }, 'heston_nn.pth')
-    print("Model saved.")
+            # Save the model and scalers
+            torch.save({
+                'model_state_dict': model.state_dict(),
+                'scaler_X': scaler_X,
+                'scaler_y': scaler_y
+            }, 'heston_nn.pth')
+        else:
+            patience_counter += 1
+            if patience_counter >= 50:  # Early stopping after 50 epochs without improvement
+                print(f"Early stopping triggered at epoch {epoch}")
+                break
 
     print()
 
+    # Load the best model for evaluation
+    checkpoint = torch.load('heston_nn.pth', weights_only=False)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    print("Best model loaded for evaluation.")
+
     # Test the model with specific parameters
     test_input_standardized = scaler_X.transform([[np.log(100/100), 0.5, 5.0, 0.05, 0.5, -0.8, 0.05, 0.03, 0.02]])
-    test_input = torch.tensor(test_input_standardized, dtype=torch.float32)
+    test_input = torch.tensor(test_input_standardized, dtype=torch.float32).to(device)
 
     with torch.no_grad():
         nn_price  = model(test_input)
-        nn_price = scaler_y.inverse_transform(nn_price.numpy())
+        nn_price = scaler_y.inverse_transform(nn_price.cpu().numpy())
 
     print(nn_price[0][0]*100)
 
     print()
 
     with torch.no_grad():
-        preds   = scaler_y.inverse_transform(model(X_test).numpy()).flatten()
-        actuals = scaler_y.inverse_transform(y_test.numpy()).flatten()
+        preds   = scaler_y.inverse_transform(model(X_test).cpu().numpy()).flatten()
+        actuals = scaler_y.inverse_transform(y_test.cpu().numpy()).flatten()
 
     # Filter out very small prices
     mask = actuals > 0.01  # only prices above 1% of S=1
     preds_f   = preds[mask]
     actuals_f = actuals[mask]
 
+    # Relative error statistics
     rel_error = np.abs(preds_f - actuals_f) / actuals_f
     print(f"Mean relative error:   {rel_error.mean()*100:.2f}%")
     print(f"Median relative error: {np.median(rel_error)*100:.2f}%")
     print(f"Max relative error:    {rel_error.max()*100:.2f}%")
     print(f"Samples evaluated:     {mask.sum()}")
+
+    # Absolute error statistics
+    abs_error = np.abs(preds_f - actuals_f)
+    print(f"Mean absolute error:   {abs_error.mean()*100:.4f}")
+    print(f"Median absolute error: {np.median(abs_error)*100:.4f}")
+    print(f"Max absolute error:    {abs_error.max()*100:.4f}")

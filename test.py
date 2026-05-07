@@ -28,8 +28,7 @@ print("Strikes and corresponding call option prices using FFT:")
 print(callFFT[0][509:516], callFFT[1][509:516])
 
 # ---------------------------------------------------------------------------
-"""
-# Test for the data generation process for the NN
+# Test for the random data generation process for the NN
 tau, kappa, theta, sigma, rho, v0, r, q = gd.random_parameters()
 S=1
 
@@ -43,15 +42,16 @@ print(log_moneyness[509:516], prices[509:516])
 print()
 
 # Test for the data generation process
-print(gd.data.shape)
-print(gd.data.min(axis=0))
-print(gd.data.max(axis=0))
-print(gd.data.mean(axis=0)) 
+data = np.loadtxt("heston_data.txt", delimiter=",")
+
+print(data.shape)
+print(data.min(axis=0))
+print(data.max(axis=0))
+print(data.mean(axis=0)) 
 
 print()
 
 # Test Call option price for NN with 5 set of parameters
-
 print(hm.heston_price(PutCall='C', S=100, K=110, tau=0.25, kappa=2.0, theta=0.08, sigma=0.3, rho=-0.5, v0=0.08, 
                       r=0.02, q=0.01, trap=1, Lu=0.00001, Uu=50, du=0.001))
 
@@ -66,4 +66,3 @@ print(hm.heston_price(PutCall='C', S=100, K=100, tau=0.75, kappa=4.0, theta=0.06
 
 print(hm.heston_price(PutCall='C', S=100, K=95, tau=2.0, kappa=0.5, theta=0.15, sigma=0.2, rho=-0.3, v0=0.15, 
                       r=0.01, q=0.04, trap=1, Lu=0.00001, Uu=50, du=0.001))
-"""
