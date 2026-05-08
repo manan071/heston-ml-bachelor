@@ -2,3 +2,4 @@ heston_data.txt
 __pycache__/
 *.pyc
 *.pth
+*training_log
