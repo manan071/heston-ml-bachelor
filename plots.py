@@ -1,6 +1,11 @@
 import matplotlib.pyplot as plt
+import pandas as pd
+import functions as f
 
-# Function to plot the training and validation loss
-def plot_loss(log_history):
-    plt.figure(figsize=(10, 5))
-    plt.plot(log_history['train_loss'], label='Train Loss')
+# Plot training and validation loss
+f.plot_loss('1-training_log.csv')
+f.plot_loss('2-training_log.csv')
+f.plot_loss('3-training_log.csv')
+f.plot_loss('4-training_log.csv')
+f.plot_loss('5-training_log.csv')
+
