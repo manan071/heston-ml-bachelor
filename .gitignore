@@ -4,3 +4,4 @@ __pycache__/
 *.pth
 *training_log.txt
 *training_log.csv
+architecture_study_results/
