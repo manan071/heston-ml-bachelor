@@ -21,7 +21,7 @@ def nn_price(S, K, tau, kappa, theta, sigma, rho, v0, r, q, scaler_X, scaler_y, 
 def black_scholes_call_price(S, K, tau, r, q, sigma_imp):
     """Calculate the Black-Scholes call option price"""
 
-    d1 = (np.log(S/K) + (r-q+0.5)*sigma_imp**2*tau) / (sigma_imp*np.sqrt(tau))
+    d1 = (np.log(S/K) + (r-q+0.5*sigma_imp**2)*tau) / (sigma_imp*np.sqrt(tau))
     d2 = d1 - sigma_imp*np.sqrt(tau)
 
     call_price = S*np.exp(-q*tau)*norm.cdf(d1) - K*np.exp(-r*tau)*norm.cdf(d2)
@@ -52,7 +52,6 @@ def plot_loss(log_history):
     plt.figure(figsize=(10, 5))
     plt.plot(log_history['Epoch'], log_history['Training Loss'], label='Training Loss')
     plt.plot(log_history['Epoch'], log_history['Validation Loss'], label='Validation Loss')
-    plt.title('Training and Validation Loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
@@ -60,14 +59,15 @@ def plot_loss(log_history):
     plt.yscale('log')
     plt.show()
 
-def plot_volatility_smile(strikes, implied_vols):
-    """Plot the volatility smile"""
+def plot_volatility_smile(strikes, implied_vols, labels):
+    """Plot the volatility smile for multiple curves"""
 
     plt.figure(figsize=(10, 5))
-    plt.plot(strikes, implied_vols, marker='o')
-    plt.title('Volatility Smile')
-    plt.xlabel('Strike Price')
-    plt.ylabel('Implied Volatility')
+    for strikes, implied_vols, label in zip(strikes, implied_vols, labels):
+        plt.plot(strikes, implied_vols, label=label)
+    plt.xlabel('Strike $K$')
+    plt.ylabel('Implied Volatility $\sigma_{imp}$')
+    plt.legend(loc='best', frameon=True)
     plt.grid()
     plt.show()
 
@@ -77,10 +77,9 @@ def plot_model_vs_explicit(model, model_prices, explicit_prices, strikes):
     plt.figure(figsize=(10, 5))
     plt.plot(strikes, model_prices, label=f'{model} Prices', marker='o')
     plt.plot(strikes, explicit_prices, label='Explicit Heston Prices', marker='x')
-    plt.title(f'{model} Prices vs Explicit Heston Prices')
-    plt.xlabel('Strike')
+    plt.xlabel('Strike $K$')
     plt.ylabel('Option Price')
-    plt.legend()
+    plt.legend(loc='best', frameon=True)
     plt.grid()
     plt.show()
 
