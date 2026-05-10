@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-import functions as f
+import utils as f
 
 # Plot training and validation loss
 f.plot_loss('1-training_log.csv')

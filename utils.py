@@ -71,3 +71,16 @@ def plot_volatility_smile(strikes, implied_vols):
     plt.grid()
     plt.show()
 
+def plot_model_vs_explicit(model, model_prices, explicit_prices, strikes):
+    """Plot model prices vs explicit Heston prices"""
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(strikes, model_prices, label=f'{model} Prices', marker='o')
+    plt.plot(strikes, explicit_prices, label='Explicit Heston Prices', marker='x')
+    plt.title(f'{model} Prices vs Explicit Heston Prices')
+    plt.xlabel('Strike')
+    plt.ylabel('Option Price')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
