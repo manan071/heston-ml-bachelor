@@ -42,6 +42,18 @@ def implied_volatility_vectorized(prices, strikes, S, tau, r, q):
 
     return implied_vols
 
+def error_metrics(model_prices, benchmark_prices, S):
+    """Calculate error metrics between model prices and benchmark prices"""
+
+    mae = np.mean(np.abs(model_prices - benchmark_prices))
+    mre = np.mean(np.abs(model_prices - benchmark_prices) / np.maximum(benchmark_prices, 0.001*S))
+    mse = np.mean((model_prices - benchmark_prices)**2)
+    rmse = np.sqrt(mse)
+    median_error = np.median(np.abs(model_prices - benchmark_prices))
+    min_error = np.min(np.abs(model_prices - benchmark_prices))
+    max_error = np.max(np.abs(model_prices - benchmark_prices))
+
+    return mae, mre, mse, rmse, median_error, min_error, max_error
 
 # Plot functions
 def plot_loss(log_history):
@@ -71,15 +83,28 @@ def plot_volatility_smile(strikes, implied_vols, labels):
     plt.grid()
     plt.show()
 
-def plot_model_vs_explicit(model, model_prices, explicit_prices, strikes):
-    """Plot model prices vs explicit Heston prices"""
+def plot_prices_vs_strike(model, model_prices, benchmark_prices, strikes):
+    """Plot model prices vs benchmark Heston prices"""
 
     plt.figure(figsize=(10, 5))
     plt.plot(strikes, model_prices, label=f'{model} Prices', marker='o')
-    plt.plot(strikes, explicit_prices, label='Explicit Heston Prices', marker='x')
+    plt.plot(strikes, benchmark_prices, label='Benchmark Heston Prices', marker='x')
     plt.xlabel('Strike $K$')
     plt.ylabel('Option Price')
     plt.legend(loc='best', frameon=True)
     plt.grid()
     plt.show()
+
+def plot_predicted_vs_benchmark(model, model_prices, benchmark_prices):
+    """Plot predicted prices vs benchmark prices"""
+
+    plt.figure(figsize=(10, 5))
+    plt.scatter(benchmark_prices, model_prices, alpha=0.5)
+    plt.plot([benchmark_prices.min(), benchmark_prices.max()], [benchmark_prices.min(), benchmark_prices.max()], 'r--')
+    plt.xlabel('Benchmark Heston Prices')
+    plt.ylabel(f'{model} Predicted Prices')
+    plt.legend(loc='best', frameon=True)
+    plt.grid()
+    plt.show()
+
 

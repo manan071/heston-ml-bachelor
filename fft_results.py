@@ -28,7 +28,8 @@ prices_fft = prices_fft[mask]
 prices_explicit = np.array([heston_price('C', S, K, tau, kappa, theta, 
                                          sigma, rho, v0, r, q, trap=1, Lu=0.00001, Uu=50, du=0.001) for K in strikes_fft])
 
-utils.plot_model_vs_explicit('FFT', prices_fft, prices_explicit, strikes_fft)
+utils.plot_prices_vs_strike('FFT', prices_fft, prices_explicit, strikes_fft)
+utils.plot_predicted_vs_benchmark('FFT', prices_fft, prices_explicit)
 
 # Plot implied volatilities
 strikes_list = []
@@ -82,10 +83,10 @@ times = []
 
 for tau, kappa, theta, sigma, rho, v0, r, q in parameter_list:
     for _ in range(100):
-        start_time = time.time()
+        start_time = time.perf_counter()
         strikes, prices = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
                                           sigma, rho, v0, r, q, trap=1)
-        times.append(time.time()-start_time)
+        times.append(time.perf_counter() - start_time)
 
 print(f"Mean of FFT computation time: {np.mean(times)*1000:.4f} ms") 
 print(f"Standard deviation of FFT computation time: {np.std(times)*1000:.4f} ms")

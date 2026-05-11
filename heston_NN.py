@@ -5,13 +5,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import time 
 
-# Load the generated data
-data = np.loadtxt("heston_data.txt", delimiter=",")
-
-# Set GPU
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"Using device: {device}")
-
 # MLP for prediction 
 class HestonNN(nn.Module):
     def __init__(self, input_size=9, hidden_size=128, output_size=1):
@@ -32,6 +25,13 @@ class HestonNN(nn.Module):
         return self.model(x)
 
 if __name__ == "__main__":
+    # Load the generated data
+    data = np.loadtxt("heston_data.txt", delimiter=",")
+
+    # Set GPU
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
+
     # Random seed for reproducibility
     np.random.seed(50)
     torch.manual_seed(50)

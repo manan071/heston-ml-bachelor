@@ -4,7 +4,7 @@ from heston_NN import HestonNN
 from utils import nn_price
 
 # Set device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # Load the trained model and scalers
 checkpoint = torch.load('1-heston_nn.pth', weights_only=False)
