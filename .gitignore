@@ -5,3 +5,5 @@ __pycache__/
 *training_log.txt
 *training_log.csv
 architecture_study_results/
+heston_data_iv.txt
+*training_log_iv.txt

@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from heston_NN import HestonNN
+from heston_NN_iv import HestonNN as HestonNN_iv
 from heston_fft import heston_call_FFT
 from heston_model import heston_price
 import utils as utils
@@ -41,7 +42,7 @@ utils.plot_loss('3-training_log.csv')
 utils.plot_loss('4-training_log.csv')
 utils.plot_loss('5-training_log.csv')
 """
-"""
+
 # Plot NN prices vs FFT prices and print error metrics
 parameter_sets = [
 
@@ -64,12 +65,12 @@ parameter_sets = [
         {'name': 'Long-maturity high-variance case', 'tau': 1.5, 'kappa': 1.0, 'theta': 0.10, 'sigma': 0.3, 'rho': -0.4, 'v0': 0.10, 
          'r': 0.02, 'q': 0.03, 'trap': 1}, 
          ]
-
+"""
 for param_set in parameter_sets:
     strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, param_set['tau'], param_set['kappa'], param_set['theta'], 
                                               param_set['sigma'], param_set['rho'], param_set['v0'], param_set['r'], param_set['q'], trap=param_set['trap'])
     
-    mask = (strikes_fft >= 30) & (strikes_fft <= 130) & (prices_fft > 0)
+    mask = (strikes_fft >= 30) & (strikes_fft <= 80) & (prices_fft > 0)
     strikes_fft = strikes_fft[mask]
     prices_fft = prices_fft[mask]
 
@@ -130,7 +131,6 @@ for param_set in parameter_sets:
     print("Median Error:", median_error)
     print("Min Error:", min_error)
     print("Max Error:", max_error)
-"""
 
 # Plot volatility smiles for the NN predictions using pricing NN
 strikes_list = []
@@ -147,7 +147,7 @@ for rho_2 in [-0.8, -0.4, 0.0]:
     
     prices_NN = scaler_y.inverse_transform(prices_NN.reshape(-1, 1)).flatten()*S 
 
-    mask = (strikes >= 30) & (strikes <= 130) & (prices > 0)
+    mask = (strikes >= 30) & (strikes <= 80) & (prices > 0)
     strikes = strikes[mask]
     prices_NN = prices_NN[mask]
 
@@ -172,7 +172,7 @@ for sigma in [0.1, 0.3, 0.6]:
     
     prices_NN = scaler_y.inverse_transform(prices_NN.reshape(-1, 1)).flatten()*S 
 
-    mask = (strikes >= 30) & (strikes <= 130) & (prices_NN > 0)
+    mask = (strikes >= 30) & (strikes <= 80) & (prices_NN > 0)
     strikes = strikes[mask]
     prices_NN = prices_NN[mask]
 
@@ -182,3 +182,88 @@ for sigma in [0.1, 0.3, 0.6]:
     labels.append(rf'$\sigma={sigma}$')
 
 utils.plot_volatility_smile(strikes_list, ivs_list, labels)
+
+# Plot volatility smiles for the NN predictions using IV NN
+
+# Load the trained model and scalers
+checkpoint = torch.load('heston_iv_nn.pth', weights_only=False)
+model = HestonNN_iv(input_size=9, hidden_size=128, output_size=1).to(device)
+model.load_state_dict(checkpoint['model_state_dict'])
+model.eval()
+
+scaler_X_iv = checkpoint['scaler_X']
+scaler_y_iv = checkpoint['scaler_y']
+
+strikes_list = []
+ivs_list = []
+labels = []
+
+# Rho
+for rho_2 in [-0.8, -0.4, 0.0]:
+    strikes, prices = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
+                                      sigma, rho_2, v0, r, q, trap=1)
+    
+    log_moneyness = np.log(strikes/S)
+
+    mask = (
+        (log_moneyness > np.log(30/S)) &
+        (log_moneyness < np.log(80/S)) &
+        np.isfinite(log_moneyness)
+    )
+
+    strikes = strikes[mask]
+    log_moneyness = log_moneyness[mask]
+
+    X = np.array([
+        [lm, tau, kappa, theta, sigma, rho_2, v0, r, q]
+        for lm in log_moneyness
+    ])
+    
+    ivs_NN = np.array([model(torch.tensor(scaler_X_iv.transform([x]), 
+                                         dtype=torch.float32).to(device)).detach().cpu().numpy()[0][0] for x in X])
+    
+    ivs_NN = scaler_y_iv.inverse_transform(ivs_NN.reshape(-1, 1)).flatten()
+
+    strikes_list.append(strikes)
+    ivs_list.append(ivs_NN)
+    labels.append(rf'$\rho={rho_2}$')
+
+utils.plot_volatility_smile(strikes_list, ivs_list, labels)
+
+# Sigma
+strikes_list.clear()
+ivs_list.clear()
+labels.clear()
+
+for sigma in [0.1, 0.3, 0.6]:
+    strikes, prices = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
+                                      sigma, rho, v0, r, q, trap=1)
+    
+    log_moneyness = np.log(strikes/S)
+
+    mask = (
+        (log_moneyness > np.log(30/S)) &
+        (log_moneyness < np.log(80/S)) &
+        np.isfinite(log_moneyness)
+    )
+
+    strikes = strikes[mask]
+    log_moneyness = log_moneyness[mask]
+
+    X = np.array([
+        [lm, tau, kappa, theta, sigma, rho, v0, r, q]
+        for lm in log_moneyness
+    ])
+    
+    ivs_NN = np.array([model(torch.tensor(scaler_X_iv.transform([x]), 
+                                         dtype=torch.float32).to(device)).detach().cpu().numpy()[0][0] for x in X])
+    
+    ivs_NN = scaler_y_iv.inverse_transform(ivs_NN.reshape(-1, 1)).flatten()
+
+    strikes_list.append(strikes)
+    ivs_list.append(ivs_NN)
+    labels.append(rf'$\sigma={sigma}$')
+
+utils.plot_volatility_smile(strikes_list, ivs_list, labels)
+"""
+

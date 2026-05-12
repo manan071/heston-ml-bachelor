@@ -16,12 +16,13 @@ v0=0.05
 r=0.03
 q=0.05
 
+"""
 # Plot FFT prices vs Heston explicit prices
 strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
                                           sigma, rho, v0, r, q, trap=1) 
 
 # Filter 
-mask = (strikes_fft >= 30) & (strikes_fft <= 130) & (prices_fft > 0)
+mask = (strikes_fft >= 30) & (strikes_fft <= 80) & (prices_fft > 0)
 strikes_fft = strikes_fft[mask]
 prices_fft = prices_fft[mask]
 
@@ -41,7 +42,7 @@ for rho_2 in [-0.8, -0.4, 0.0]:
     strikes, prices = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
                                       sigma, rho_2, v0, r, q, trap=1)
 
-    mask = (strikes >= 30) & (strikes <= 130) & (prices > 0)
+    mask = (strikes >= 30) & (strikes <= 80) & (prices > 0)
     strikes = strikes[mask]
     prices = prices[mask]
 
@@ -61,7 +62,7 @@ for sigma in [0.1, 0.3, 0.6]:
     strikes, prices = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
                                       sigma, rho, v0, r, q, trap=1)
     
-    mask = (strikes >= 30) & (strikes <= 130) & (prices > 0)
+    mask = (strikes >= 30) & (strikes <= 80) & (prices > 0)
     strikes = strikes[mask]
     prices = prices[mask]
 
@@ -90,3 +91,4 @@ for tau, kappa, theta, sigma, rho, v0, r, q in parameter_list:
 
 print(f"Mean of FFT computation time: {np.mean(times)*1000:.4f} ms") 
 print(f"Standard deviation of FFT computation time: {np.std(times)*1000:.4f} ms")
+"""
