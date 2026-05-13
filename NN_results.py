@@ -267,3 +267,35 @@ for sigma in [0.1, 0.3, 0.6]:
 utils.plot_volatility_smile(strikes_list, ivs_list, labels)
 """
 
+# Neural network vs FFT on interpolation test cases
+parameter_list = [
+    (0.5, 2.0, 0.04, 0.3, -0.7, 0.04, 0.03, 0.01), 
+    (0.1, 5.0, 0.01, 0.8, -0.9, 0.01, 0.05, 0.0),    # Short maturity
+    (2.0, 0.5, 0.16, 0.1, -0.1, 0.16, 0.01, 0.05),   # Long maturity
+]
+
+for tau, kappa, theta, sigma, rho, v0, r, q in parameter_list:
+    strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta)
+
+    mask = (strikes_fft >= 30) & (strikes_fft <= 80) & (prices_fft > 0) & np.argsort(strikes_fft)
+    strikes_fft = strikes_fft[mask]
+    prices_fft = prices_fft[mask]
+
+    #Find strikes not in the grid 
+    strikes_offgrid = (strikes_fft[:-1] + strikes_fft[1:])/2
+
+    # Pick 20 random strikes from the off-grid stirkes
+    np.random.seed(50)
+    strikes_offgrid = np.random.choice(strikes_offgrid, size=20, replace=False)
+
+    prices_fft = np.array([utils.fft_price_interpolation(S, K, tau, kappa, theta, 
+                                                         sigma, rho, v0, r, q, strikes_fft, prices_fft) for K in strikes_offgrid])
+    
+    prices_NN = np.array([utils.nn_price(S, K, tau, kappa, theta, 
+                                         sigma, rho, v0, r, q, scaler_X, scaler_y, model, device) for K in strikes_offgrid])
+    prices_NN = scaler_y.inverse_transform(prices_NN.reshape(-1, 1)).flatten()*S
+
+    utils.plot_predicted_vs_benchmark('Interpolation Test', prices_NN, prices_fft)
+
+
+

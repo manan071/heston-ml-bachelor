@@ -18,6 +18,16 @@ def nn_price(S, K, tau, kappa, theta, sigma, rho, v0, r, q, scaler_X, scaler_y, 
 
     return price
 
+def fft_price_interpolation(S, K, tau, kappa, theta, sigma, rho, v0, r, q, strikes_fft, prices_fft):
+    """Calculate the option price using linear interpolation of FFT results"""
+
+    if K < strikes_fft[0] or K > strikes_fft[-1]:
+        raise ValueError("Strike K is out of bounds for interpolation")
+    
+    price = np.interp(K, strikes_fft, prices_fft)
+
+    return price
+
 def black_scholes_call_price(S, K, tau, r, q, sigma_imp):
     """Calculate the Black-Scholes call option price"""
 
