@@ -105,6 +105,32 @@ def plot_prices_vs_strike(model, model_prices, benchmark_prices, strikes):
     plt.grid()
     plt.show()
 
+def plot_error_two_models(model1, model2, model_error, model2_error, strikes):
+    """Plot absolute error of two models against explicit Heston prices"""
+
+    strikes = np.asarray(strikes)
+    model_error = np.asarray(model_error)
+    model2_error = np.asarray(model2_error)
+
+    # Sort everything by strike so the x-axis is ordered correctly
+    idx = np.argsort(strikes)
+
+    strikes = strikes[idx]
+    model_error = model_error[idx]
+    model2_error = model2_error[idx]
+
+    plt.figure(figsize=(10, 5))
+
+    plt.scatter(strikes, model_error, label=f'{model1} Error', marker='o')
+    plt.scatter(strikes, model2_error, label=f'{model2} Error', marker='x')
+
+    plt.xlabel('Strike $K$')
+    plt.ylabel('Absolute Error')
+    plt.legend(loc='best', frameon=True)
+    plt.ylim(0, 0.04)
+    plt.grid(alpha=0.4)
+    plt.show()
+
 def plot_predicted_vs_benchmark(model, model_prices, benchmark_prices):
     """Plot predicted prices vs benchmark prices"""
 

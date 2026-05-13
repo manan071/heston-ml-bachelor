@@ -269,23 +269,32 @@ utils.plot_volatility_smile(strikes_list, ivs_list, labels)
 
 # Neural network vs FFT on interpolation test cases
 parameter_list = [
-    (0.5, 2.0, 0.04, 0.3, -0.7, 0.04, 0.03, 0.01), 
-    (0.1, 5.0, 0.01, 0.8, -0.9, 0.01, 0.05, 0.0),    # Short maturity
-    (2.0, 0.5, 0.16, 0.1, -0.1, 0.16, 0.01, 0.05),   # Long maturity
+    # Case 1: Moderate benchmark
+    (0.50, 2.00, 0.04, 0.30, -0.70, 0.04, 0.03, 0.01),
+
+    # Case 4: Extreme short-maturity skew
+    (0.10, 4.00, 0.08, 0.50, -0.80, 0.08, 0.03, 0.00),
+
+    # Case 5: Long maturity / high variance
+    (1.50, 1.00, 0.10, 0.30, -0.40, 0.10, 0.02, 0.03),
 ]
 
 for tau, kappa, theta, sigma, rho, v0, r, q in parameter_list:
-    strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta)
+    strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, sigma, rho, v0, r, q, trap=1)
 
-    mask = (strikes_fft >= 30) & (strikes_fft <= 80) & (prices_fft > 0) & np.argsort(strikes_fft)
+    mask = (strikes_fft >= 30) & (strikes_fft <= 80) & (prices_fft > 0) 
     strikes_fft = strikes_fft[mask]
     prices_fft = prices_fft[mask]
+
+    order = np.argsort(strikes_fft)
+    strikes_fft = strikes_fft[order]
+    prices_fft = prices_fft[order]
 
     #Find strikes not in the grid 
     strikes_offgrid = (strikes_fft[:-1] + strikes_fft[1:])/2
 
     # Pick 20 random strikes from the off-grid stirkes
-    np.random.seed(50)
+    np.random.seed(20)
     strikes_offgrid = np.random.choice(strikes_offgrid, size=20, replace=False)
 
     prices_fft = np.array([utils.fft_price_interpolation(S, K, tau, kappa, theta, 
@@ -293,9 +302,17 @@ for tau, kappa, theta, sigma, rho, v0, r, q in parameter_list:
     
     prices_NN = np.array([utils.nn_price(S, K, tau, kappa, theta, 
                                          sigma, rho, v0, r, q, scaler_X, scaler_y, model, device) for K in strikes_offgrid])
-    prices_NN = scaler_y.inverse_transform(prices_NN.reshape(-1, 1)).flatten()*S
 
-    utils.plot_predicted_vs_benchmark('Interpolation Test', prices_NN, prices_fft)
+    explicit_prices = np.array([heston_price('C', S, K, tau, kappa, theta, sigma, rho, v0, r, q, trap=1, Lu=0.00001, Uu=50, du=0.001) for K in strikes_offgrid])
+
+    error_fft = np.abs(prices_fft - explicit_prices)
+    error_NN = np.abs(prices_NN - explicit_prices)
+
+    print(f"Test case with tau={tau}, kappa={kappa}, theta={theta}, sigma={sigma}, rho={rho}, v0={v0}, r={r}, q={q}")
+    print(f"Mean absolute error for FFT: {error_fft.mean():.4f}")
+    print(f"Mean absolute error for NN: {error_NN.mean():.4f}")
+
+    utils.plot_error_two_models('NN', 'FFT', error_NN, error_fft, strikes_offgrid)
 
 
 
