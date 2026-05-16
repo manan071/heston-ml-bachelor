@@ -18,6 +18,19 @@ def nn_price(S, K, tau, kappa, theta, sigma, rho, v0, r, q, scaler_X, scaler_y, 
 
     return price
 
+def nn_price_batch(S, strikes, tau, kappa, theta, sigma, rho, v0, r, q, scaler_X, scaler_y, model, device):
+    """Calculate option prices for multiple strikes in a single forward pass"""
+
+    x = scaler_X.transform(np.array([[np.log(K/S), tau, kappa, theta, sigma, rho, v0, r, q] for K in strikes]))
+
+    with torch.no_grad():
+        X_tensor = torch.tensor(x, dtype=torch.float32).to(device)
+        prices = model(X_tensor).cpu().numpy()
+
+    prices = scaler_y.inverse_transform(prices).flatten() * S
+
+    return prices
+
 def fft_price_interpolation(S, K, tau, kappa, theta, sigma, rho, v0, r, q, strikes_fft, prices_fft):
     """Calculate the option price using linear interpolation of FFT results"""
 
@@ -143,4 +156,15 @@ def plot_predicted_vs_benchmark(model, model_prices, benchmark_prices):
     plt.grid()
     plt.show()
 
+def plot_heatmap_error(error_grid, param1_values, param2_values, param1_name, param2_name):
+    """Plot a heatmap of absolute pricing errors across two parameters"""
 
+    fig, ax = plt.subplots(figsize=(10, 5))
+    im = ax.imshow(error_grid, origin='lower', aspect='auto',
+                   extent=[param1_values[0], param1_values[-1], param2_values[0], param2_values[-1]],
+                   cmap='viridis')
+    ax.set_xlabel(param1_name)
+    ax.set_ylabel(param2_name)
+    plt.colorbar(im, label='Absolute Error')
+    plt.tight_layout()
+    plt.show()
