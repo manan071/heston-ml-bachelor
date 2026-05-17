@@ -72,23 +72,4 @@ for sigma in [0.1, 0.3, 0.6]:
     labels.append(rf'$\sigma={sigma}$')
 
 utils.plot_volatility_smile(strikes_list, ivs_list, labels)
-
-# Time the FFT 
-parameter_list = [
-    (0.5, 2.0, 0.04, 0.3, -0.7, 0.04, 0.03, 0.01), 
-    (0.1, 5.0, 0.01, 0.8, -0.9, 0.01, 0.05, 0.0),    # Short maturity
-    (2.0, 0.5, 0.16, 0.1, -0.1, 0.16, 0.01, 0.05),   # Long maturity
-]
-
-times = []
-
-for tau, kappa, theta, sigma, rho, v0, r, q in parameter_list:
-    for _ in range(100):
-        start_time = time.perf_counter()
-        strikes, prices = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
-                                          sigma, rho, v0, r, q, trap=1)
-        times.append(time.perf_counter() - start_time)
-
-print(f"Mean of FFT computation time: {np.mean(times)*1000:.4f} ms") 
-print(f"Standard deviation of FFT computation time: {np.std(times)*1000:.4f} ms")
 """
