@@ -31,6 +31,19 @@ def nn_price_batch(S, strikes, tau, kappa, theta, sigma, rho, v0, r, q, scaler_X
 
     return prices
 
+def nn_iv_batch(S, strikes, tau, kappa, theta, sigma, rho, v0, r, q, scaler_X_iv, scaler_y_iv, model_iv, device):
+    """Calculate implied volatilities for multiple strikes in a single forward pass"""
+
+    log_moneyness = np.log(np.asarray(strikes) / S)
+    X = np.array([[lm, tau, kappa, theta, sigma, rho, v0, r, q] for lm in log_moneyness])
+    X_scaled = scaler_X_iv.transform(X)
+
+    with torch.no_grad():
+        X_tensor = torch.tensor(X_scaled, dtype=torch.float32).to(device)
+        ivs = model_iv(X_tensor).cpu().numpy()
+
+    return scaler_y_iv.inverse_transform(ivs).flatten()
+
 def fft_price_interpolation(S, K, tau, kappa, theta, sigma, rho, v0, r, q, strikes_fft, prices_fft):
     """Calculate the option price using linear interpolation of FFT results"""
 
@@ -167,4 +180,18 @@ def plot_heatmap_error(error_grid, param1_values, param2_values, param1_name, pa
     ax.set_ylabel(param2_name)
     plt.colorbar(im, label='Absolute Error')
     plt.tight_layout()
+    plt.show()
+
+def plot_volatility_surface(strikes, maturities, iv_surface, title):
+    """Plot a single implied volatility surface"""
+
+    K_grid, T_grid = np.meshgrid(strikes, maturities)
+
+    fig = plt.figure(figsize=(10, 5))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(K_grid, T_grid, iv_surface, cmap='viridis', alpha=0.85)
+    ax.set_xlabel('Strike $K$')
+    ax.set_ylabel('Maturity $\\tau$')
+    ax.set_zlabel('Implied Volatility')
+    ax.set_title(f'{title} Implied Volatility Surface')
     plt.show()

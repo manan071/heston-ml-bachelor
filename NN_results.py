@@ -404,22 +404,75 @@ for K in strikes:
 print(f"Mean of NN computation time: {np.mean(times)*1000:.4f} ms") 
 print(f"Standard deviation of NN computation time: {np.std(times)*1000:.4f} ms")
 """
+"""
+# Time the FFT and NN for 10 maturity with 20 strikes each
+maturities = np.linspace(0.1, 2.0, 10)
+strikes_grid = np.linspace(30, 80, 20)
 
-# Time the FFT and NN for multiple strikes
-parameter_list = [
-    (0.5, 2.0, 0.04, 0.3, -0.7, 0.04, 0.03, 0.01), 
-    (0.1, 5.0, 0.01, 0.8, -0.9, 0.01, 0.05, 0.0),    # Short maturity
-    (2.0, 0.5, 0.16, 0.1, -0.1, 0.16, 0.01, 0.05),   # Long maturity
-]
+fft_prices_grid = np.zeros((len(maturities), len(strikes_grid)))
+nn_prices_grid = np.zeros((len(maturities), len(strikes_grid)))
+iv_surface_iv_nn = np.zeros((len(maturities), len(strikes_grid)))
 
-times = []
+# FFT
+fft_times = []
+for _ in range(100):
+    start_time = time.perf_counter()
+    for i, tau_i in enumerate(maturities):
+        strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, tau_i, kappa, theta,
+                                                   sigma, rho, v0, r, q, trap=1)
+        fft_prices_grid[i, :] = np.interp(strikes_grid, strikes_fft, prices_fft)
+    fft_times.append(time.perf_counter() - start_time)
 
-for tau, kappa, theta, sigma, rho, v0, r, q in parameter_list:
-    for _ in range(100):
-        start_time = time.perf_counter()
-        strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
-                                          sigma, rho, v0, r, q, trap=1)
-        times.append(time.perf_counter() - start_time)
+print(f"Mean of FFT computation time (10 maturities x 20 strikes): {np.mean(fft_times)*1000:.4f} ms")
+print(f"Standard deviation of FFT computation time: {np.std(fft_times)*1000:.4f} ms")
 
-print(f"Mean of FFT computation time: {np.mean(times)*1000:.4f} ms") 
-print(f"Standard deviation of FFT computation time: {np.std(times)*1000:.4f} ms")
+# NN
+_ = utils.nn_price_batch(S, strikes_grid, maturities[0], kappa, theta, sigma, rho, v0, r, q,
+                          scaler_X, scaler_y, model, device)
+
+nn_times = []
+for _ in range(100):
+    start_time = time.perf_counter()
+    for i, tau_i in enumerate(maturities):
+        nn_prices_grid[i, :] = utils.nn_price_batch(S, strikes_grid, tau_i, kappa, theta, sigma, rho, v0, r, q,
+                                                      scaler_X, scaler_y, model, device)
+    nn_times.append(time.perf_counter() - start_time)
+
+print(f"Mean of NN computation time (10 maturities x 20 strikes): {np.mean(nn_times)*1000:.4f} ms")
+print(f"Standard deviation of NN computation time: {np.std(nn_times)*1000:.4f} ms")
+
+# IV NN
+checkpoint_iv = torch.load('heston_iv_nn.pth', weights_only=False)
+model_iv = HestonNN_iv(input_size=9, hidden_size=128, output_size=1).to(device)
+model_iv.load_state_dict(checkpoint_iv['model_state_dict'])
+model_iv.eval()
+
+scaler_X_iv = checkpoint_iv['scaler_X']
+scaler_y_iv = checkpoint_iv['scaler_y']
+
+_ = utils.nn_iv_batch(S, strikes_grid, maturities[0], kappa, theta, sigma, rho, v0, r, q,
+                       scaler_X_iv, scaler_y_iv, model_iv, device)
+
+iv_nn_times = []
+for _ in range(100):
+    start_time = time.perf_counter()
+    for i, tau_i in enumerate(maturities):
+        iv_surface_iv_nn[i, :] = utils.nn_iv_batch(S, strikes_grid, tau_i, kappa, theta, sigma, rho, v0, r, q,
+                                                    scaler_X_iv, scaler_y_iv, model_iv, device)
+    iv_nn_times.append(time.perf_counter() - start_time)
+
+print(f"Mean of IV NN computation time (10 maturities x 20 strikes): {np.mean(iv_nn_times)*1000:.4f} ms")
+print(f"Standard deviation of IV NN computation time: {np.std(iv_nn_times)*1000:.4f} ms")
+
+# Compute implied volatility surface
+iv_surface_fft = np.zeros((len(maturities), len(strikes_grid)))
+iv_surface_nn = np.zeros((len(maturities), len(strikes_grid)))
+
+for i, tau_i in enumerate(maturities):
+    iv_surface_fft[i, :] = utils.implied_volatility_vectorized(fft_prices_grid[i, :], strikes_grid, S, tau_i, r, q)
+    iv_surface_nn[i, :] = utils.implied_volatility_vectorized(nn_prices_grid[i, :], strikes_grid, S, tau_i, r, q)
+
+utils.plot_volatility_surface(strikes_grid, maturities, iv_surface_fft, 'FFT')
+utils.plot_volatility_surface(strikes_grid, maturities, iv_surface_nn, 'Pricing NN')
+utils.plot_volatility_surface(strikes_grid, maturities, iv_surface_iv_nn, 'IV NN')
+"""
