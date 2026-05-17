@@ -34,12 +34,10 @@ def nn_price_batch(S, strikes, tau, kappa, theta, sigma, rho, v0, r, q, scaler_X
 def nn_iv_batch(S, strikes, tau, kappa, theta, sigma, rho, v0, r, q, scaler_X_iv, scaler_y_iv, model_iv, device):
     """Calculate implied volatilities for multiple strikes in a single forward pass"""
 
-    log_moneyness = np.log(np.asarray(strikes) / S)
-    X = np.array([[lm, tau, kappa, theta, sigma, rho, v0, r, q] for lm in log_moneyness])
-    X_scaled = scaler_X_iv.transform(X)
+    x = scaler_X_iv.transform(np.array([[np.log(K/S), tau, kappa, theta, sigma, rho, v0, r, q] for K in strikes]))
 
     with torch.no_grad():
-        X_tensor = torch.tensor(X_scaled, dtype=torch.float32).to(device)
+        X_tensor = torch.tensor(x, dtype=torch.float32).to(device)
         ivs = model_iv(X_tensor).cpu().numpy()
 
     return scaler_y_iv.inverse_transform(ivs).flatten()
