@@ -20,7 +20,7 @@ q=0.05
 
 # Load the trained model and scalers
 # Set device
-#device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+# device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 device = torch.device('cpu')
 
 # Load the trained model and scalers
@@ -45,11 +45,11 @@ utils.plot_loss('5-training_log.csv')
 parameter_sets = [
 
         {'name': 'Moderate benchmark case', 'tau': 0.5, 'kappa': 2.0, 'theta': 0.04, 'sigma': 0.3, 'rho': -0.7, 'v0': 0.04, 
-         'r': 0.03, 'q': 0.01, 'trap': 1},
+        'r': 0.03, 'q': 0.01, 'trap': 1},
 
         # Short maturity with high variance
         {'name': 'Short-maturity high-variance case', 'tau': 0.25, 'kappa': 3.0, 'theta': 0.06, 'sigma': 0.4, 'rho': -0.5, 'v0': 0.06, 
-         'r': 0.02, 'q': 0.02, 'trap': 1}, 
+        'r': 0.02, 'q': 0.02, 'trap': 1}, 
 
         # Long maturity with low volatility of volatility
         {'name': 'Long-maturity low-vol-of-vol case', 'tau': 1.0, 'kappa': 1.5, 'theta': 0.03, 'sigma': 0.2, 'rho': -0.3, 'v0': 0.03,
@@ -57,23 +57,23 @@ parameter_sets = [
 
         # Very short maturity with high vol-of-vol and strong negative correlation
         {'name': 'Extreme short-maturity skew case', 'tau': 0.1, 'kappa': 4.0, 'theta': 0.08, 'sigma': 0.5, 'rho': -0.8, 'v0': 0.08, 
-         'r': 0.03, 'q': 0.0, 'trap': 1}, 
+        'r': 0.03, 'q': 0.0, 'trap': 1}, 
 
         # Long maturity with high variance and low mean reversion
         {'name': 'Long-maturity high-variance case', 'tau': 1.5, 'kappa': 1.0, 'theta': 0.10, 'sigma': 0.3, 'rho': -0.4, 'v0': 0.10, 
-         'r': 0.02, 'q': 0.03, 'trap': 1}, 
-         ]
+        'r': 0.02, 'q': 0.03, 'trap': 1}, 
+        ]
 
 for param_set in parameter_sets:
     strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, param_set['tau'], param_set['kappa'], param_set['theta'], 
-                                              param_set['sigma'], param_set['rho'], param_set['v0'], param_set['r'], param_set['q'], trap=param_set['trap'])
+                                            param_set['sigma'], param_set['rho'], param_set['v0'], param_set['r'], param_set['q'], trap=param_set['trap'])
     
     mask = (strikes_fft >= 30) & (strikes_fft <= 80) & (prices_fft > 0)
     strikes_fft = strikes_fft[mask]
     prices_fft = prices_fft[mask]
 
     prices_NN = np.array([utils.nn_price(S, K, param_set['tau'], param_set['kappa'], param_set['theta'], 
-                                         param_set['sigma'], param_set['rho'], param_set['v0'], param_set['r'], param_set['q'], scaler_X, scaler_y, model, device) for K in strikes_fft])
+                                        param_set['sigma'], param_set['rho'], param_set['v0'], param_set['r'], param_set['q'], scaler_X, scaler_y, model, device) for K in strikes_fft])
 
     utils.plot_prices_vs_strike('NN', prices_NN, prices_fft, strikes_fft)
     utils.plot_predicted_vs_benchmark('NN', prices_NN, prices_fft)
@@ -140,10 +140,10 @@ labels = []
 # Rho
 for rho_2 in [-0.8, -0.4, 0.0]:
     strikes, prices = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
-                                      sigma, rho_2, v0, r, q, trap=1)
+                                    sigma, rho_2, v0, r, q, trap=1)
 
     prices_NN = np.array([utils.nn_price(S, K, tau, kappa, theta, 
-                                         sigma, rho_2, v0, r, q, scaler_X, scaler_y, model, device) for K in strikes])
+                                        sigma, rho_2, v0, r, q, scaler_X, scaler_y, model, device) for K in strikes])
 
     mask = (strikes >= 30) & (strikes <= 80) & (prices > 0)
     strikes = strikes[mask]
@@ -163,10 +163,10 @@ labels.clear()
 
 for sigma in [0.1, 0.3, 0.6]:
     strikes, prices = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
-                                      sigma, rho, v0, r, q, trap=1)
+                                    sigma, rho, v0, r, q, trap=1)
     
     prices_NN = np.array([utils.nn_price(S, K, tau, kappa, theta, 
-                                         sigma, rho_2, v0, r, q, scaler_X, scaler_y, model, device) for K in strikes])
+                                        sigma, rho_2, v0, r, q, scaler_X, scaler_y, model, device) for K in strikes])
 
     mask = (strikes >= 30) & (strikes <= 80) & (prices_NN > 0)
     strikes = strikes[mask]
@@ -198,7 +198,7 @@ labels = []
 # Rho
 for rho_2 in [-0.8, -0.4, 0.0]:
     strikes, prices = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
-                                      sigma, rho_2, v0, r, q, trap=1)
+                                    sigma, rho_2, v0, r, q, trap=1)
     
     log_moneyness = np.log(strikes/S)
 
@@ -217,7 +217,7 @@ for rho_2 in [-0.8, -0.4, 0.0]:
     ])
     
     ivs_NN = np.array([model(torch.tensor(scaler_X_iv.transform([x]), 
-                                         dtype=torch.float32).to(device)).detach().cpu().numpy()[0][0] for x in X])
+                                        dtype=torch.float32).to(device)).detach().cpu().numpy()[0][0] for x in X])
     
     ivs_NN = scaler_y_iv.inverse_transform(ivs_NN.reshape(-1, 1)).flatten()
 
@@ -234,7 +234,7 @@ labels.clear()
 
 for sigma in [0.1, 0.3, 0.6]:
     strikes, prices = heston_call_FFT(4096, 0.25, 1.5, S, tau, kappa, theta, 
-                                      sigma, rho, v0, r, q, trap=1)
+                                    sigma, rho, v0, r, q, trap=1)
     
     log_moneyness = np.log(strikes/S)
 
@@ -253,7 +253,7 @@ for sigma in [0.1, 0.3, 0.6]:
     ])
     
     ivs_NN = np.array([model(torch.tensor(scaler_X_iv.transform([x]), 
-                                         dtype=torch.float32).to(device)).detach().cpu().numpy()[0][0] for x in X])
+                                        dtype=torch.float32).to(device)).detach().cpu().numpy()[0][0] for x in X])
     
     ivs_NN = scaler_y_iv.inverse_transform(ivs_NN.reshape(-1, 1)).flatten()
 
@@ -295,10 +295,10 @@ for tau, kappa, theta, sigma, rho, v0, r, q in parameter_list:
     strikes_offgrid = np.random.choice(strikes_offgrid, size=20, replace=False)
 
     prices_fft = np.array([utils.fft_price_interpolation(S, K, tau, kappa, theta, 
-                                                         sigma, rho, v0, r, q, strikes_fft, prices_fft) for K in strikes_offgrid])
+                                                        sigma, rho, v0, r, q, strikes_fft, prices_fft) for K in strikes_offgrid])
     
     prices_NN = np.array([utils.nn_price(S, K, tau, kappa, theta, 
-                                         sigma, rho, v0, r, q, scaler_X, scaler_y, model, device) for K in strikes_offgrid])
+                                        sigma, rho, v0, r, q, scaler_X, scaler_y, model, device) for K in strikes_offgrid])
 
     explicit_prices = np.array([heston_price('C', S, K, tau, kappa, theta, sigma, rho, v0, r, q, trap=1, Lu=0.00001, Uu=50, du=0.001) for K in strikes_offgrid])
 
@@ -324,7 +324,7 @@ error_grid = np.zeros((len(rho_values), len(tau_values)))
 for i, tau_val in enumerate(tau_values):
     for j, rho_val in enumerate(rho_values):
         strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, tau_val, kappa, theta, 
-                                                  sigma, rho_val, v0, r, q, trap=1)
+                                                sigma, rho_val, v0, r, q, trap=1)
         
         mask = (strikes_fft >= 30) & (strikes_fft <= 80) & (prices_fft > 0)
         strikes_fft = strikes_fft[mask]
@@ -333,7 +333,7 @@ for i, tau_val in enumerate(tau_values):
         price_fft = np.interp(K, strikes_fft, prices_fft)
 
         price_NN = utils.nn_price(S, K, tau_val, kappa, theta, 
-                                  sigma, rho_val, v0, r, q, scaler_X, scaler_y, model, device)
+                                sigma, rho_val, v0, r, q, scaler_X, scaler_y, model, device)
         
         error_grid[i, j] = np.abs(price_NN - price_fft)
 
@@ -348,7 +348,7 @@ error_grid = np.zeros((len(sigma_values), len(tau_values)))
 for i, tau_val in enumerate(tau_values):
     for j, sigma_val in enumerate(sigma_values):
         strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, tau_val, kappa, theta, 
-                                                  sigma_val, rho, v0, r, q, trap=1)
+                                                sigma_val, rho, v0, r, q, trap=1)
         
         mask = (strikes_fft >= 30) & (strikes_fft <= 80) & (prices_fft > 0)
         strikes_fft = strikes_fft[mask]
@@ -357,7 +357,7 @@ for i, tau_val in enumerate(tau_values):
         price_fft = np.interp(K, strikes_fft, prices_fft)
 
         price_NN = utils.nn_price(S, K, tau_val, kappa, theta, 
-                                  sigma_val, rho, v0, r, q, scaler_X, scaler_y, model, device)
+                                sigma_val, rho, v0, r, q, scaler_X, scaler_y, model, device)
         
         error_grid[i, j] = np.abs(price_NN - price_fft)
 
@@ -379,6 +379,7 @@ for K in strikes:
 print(f"Mean of Carr-Madan direct integration computation time: {np.mean(times)*1000:.4f} ms") 
 print(f"Standard deviation of Carr-Madan direct integration computation time: {np.std(times)*1000:.4f} ms")
 
+times.clear()
 # FFT
 for K in strikes:
     for _ in range(100):
@@ -391,6 +392,7 @@ for K in strikes:
 print(f"Mean of FFT computation time: {np.mean(times)*1000:.4f} ms") 
 print(f"Standard deviation of FFT computation time: {np.std(times)*1000:.4f} ms")
 
+times.clear()
 # NN
 _ = utils.nn_price_batch(S, strikes, 0.5, 2.0, 0.04, 0.3, -0.7, 0.04, 0.03, 0.01, scaler_X, scaler_y, model, device) # Warmup 
 
@@ -419,7 +421,7 @@ for _ in range(100):
     start_time = time.perf_counter()
     for i, tau_i in enumerate(maturities):
         strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, tau_i, kappa, theta,
-                                                   sigma, rho, v0, r, q, trap=1)
+                                                sigma, rho, v0, r, q, trap=1)
         fft_prices_grid[i, :] = np.interp(strikes_grid, strikes_fft, prices_fft)
     fft_times.append(time.perf_counter() - start_time)
 
@@ -428,14 +430,14 @@ print(f"Standard deviation of FFT computation time: {np.std(fft_times)*1000:.4f}
 
 # NN
 _ = utils.nn_price_batch(S, strikes_grid, maturities[0], kappa, theta, sigma, rho, v0, r, q,
-                          scaler_X, scaler_y, model, device)
+                        scaler_X, scaler_y, model, device)
 
 nn_times = []
 for _ in range(100):
     start_time = time.perf_counter()
     for i, tau_i in enumerate(maturities):
         nn_prices_grid[i, :] = utils.nn_price_batch(S, strikes_grid, tau_i, kappa, theta, sigma, rho, v0, r, q,
-                                                      scaler_X, scaler_y, model, device)
+                                                    scaler_X, scaler_y, model, device)
     nn_times.append(time.perf_counter() - start_time)
 
 print(f"Mean of NN computation time (10 maturities x 20 strikes): {np.mean(nn_times)*1000:.4f} ms")
@@ -451,7 +453,7 @@ scaler_X_iv = checkpoint_iv['scaler_X']
 scaler_y_iv = checkpoint_iv['scaler_y']
 
 _ = utils.nn_iv_batch(S, strikes_grid, maturities[0], kappa, theta, sigma, rho, v0, r, q,
-                       scaler_X_iv, scaler_y_iv, model_iv, device)
+                    scaler_X_iv, scaler_y_iv, model_iv, device)
 
 iv_nn_times = []
 for _ in range(100):
@@ -475,4 +477,60 @@ for i, tau_i in enumerate(maturities):
 utils.plot_volatility_surface(strikes_grid, maturities, iv_surface_fft, 'FFT')
 utils.plot_volatility_surface(strikes_grid, maturities, iv_surface_nn, 'Pricing NN')
 utils.plot_volatility_surface(strikes_grid, maturities, iv_surface_iv_nn, 'IV NN')
+"""
+"""
+# Time full surface batch with pre batching 
+maturities = np.linspace(0.1, 2.0, 10)
+strikes_grid = np.linspace(30, 80, 20)
+
+# FFT
+fft_prices_grid = np.zeros((len(maturities), len(strikes_grid)))
+
+fft_times = []
+for _ in range(100):
+    start_time = time.perf_counter()
+    for i, tau_i in enumerate(maturities):
+        strikes_fft, prices_fft = heston_call_FFT(4096, 0.25, 1.5, S, tau_i, kappa, theta,
+                                                sigma, rho, v0, r, q, trap=1)
+        fft_prices_grid[i, :] = np.interp(strikes_grid, strikes_fft, prices_fft)
+    fft_times.append(time.perf_counter() - start_time)
+
+# NN
+
+# Build input for warmup
+all_strikes = np.tile(strikes_grid, len(maturities))
+all_taus = np.repeat(maturities, len(strikes_grid))
+n = len(all_strikes)
+X = np.empty((n, 9))
+X[:, 0] = np.log(all_strikes / S)
+X[:, 1] = all_taus
+X[:, 2] = 2.0; X[:, 3] = 0.04; X[:, 4] = 0.3
+X[:, 5] = -0.7; X[:, 6] = 0.04; X[:, 7] = 0.03; X[:, 8] = 0.01
+X = ((X - scaler_X.mean_) / scaler_X.scale_).astype(np.float32)
+
+_ = model(torch.from_numpy(X).to(device))  # warmup
+
+nn_times = []
+for _ in range(100):
+    start_time = time.perf_counter()
+    all_strikes = np.tile(strikes_grid, len(maturities))
+    all_taus = np.repeat(maturities, len(strikes_grid))
+
+    n = len(all_strikes)
+    X = np.empty((n, 9))
+    X[:, 0] = np.log(all_strikes / S)
+    X[:, 1] = all_taus
+    X[:, 2] = 2.0; X[:, 3] = 0.04; X[:, 4] = 0.3
+    X[:, 5] = -0.7; X[:, 6] = 0.04; X[:, 7] = 0.03; X[:, 8] = 0.01
+    X = ((X - scaler_X.mean_) / scaler_X.scale_).astype(np.float32)
+
+    with torch.no_grad():
+        prices = model(torch.from_numpy(X).to(device)).cpu().numpy()
+    nn_times.append(time.perf_counter() - start_time)
+
+print(f"Mean of FFT computation time (10 maturities x 20 strikes): {np.mean(fft_times)*1000:.4f} ms")
+print(f"Standard deviation of FFT computation time: {np.std(fft_times)*1000:.4f} ms")
+
+print(f"Mean of NN computation time (10 maturities x 20 strikes): {np.mean(nn_times)*1000:.4f} ms")
+print(f"Standard deviation of NN computation time: {np.std(nn_times)*1000:.4f} ms")
 """
