@@ -24,7 +24,7 @@ q=0.05
 device = torch.device('cpu')
 
 # Load the trained model and scalers
-checkpoint = torch.load('1-heston_nn.pth', weights_only=False)
+checkpoint = torch.load('1-heston_nn.pth', weights_only=False, map_location='cpu')
 model = HestonNN(input_size=9, hidden_size=128, output_size=1).to(device)
 model.load_state_dict(checkpoint['model_state_dict'])
 model.eval()
@@ -34,11 +34,11 @@ scaler_y = checkpoint['scaler_y']
 
 # Plot training and validation loss
 """
-utils.plot_loss('1-training_log.csv')
-utils.plot_loss('2-training_log.csv')
-utils.plot_loss('3-training_log.csv')
-utils.plot_loss('4-training_log.csv')
-utils.plot_loss('5-training_log.csv')
+utils.plot_loss(r'training_batch_size\1-training_log.csv')
+utils.plot_loss(r'training_batch_size\2-training_log.csv')
+utils.plot_loss(r'training_batch_size\3-training_log.csv')
+utils.plot_loss(r'training_batch_size\4-training_log.csv')
+utils.plot_loss(r'training_batch_size\5-training_log.csv')
 """
 """
 # Plot NN prices vs FFT prices and print error metrics
@@ -183,7 +183,7 @@ utils.plot_volatility_smile(strikes_list, ivs_list, labels)
 # Plot volatility smiles for the NN predictions using IV NN
 
 # Load the trained model and scalers
-checkpoint = torch.load('heston_iv_nn.pth', weights_only=False)
+checkpoint = torch.load('heston_iv_nn.pth', weights_only=False, map_location='cpu')
 model = HestonNN_iv(input_size=9, hidden_size=128, output_size=1).to(device)
 model.load_state_dict(checkpoint['model_state_dict'])
 model.eval()
@@ -444,7 +444,7 @@ print(f"Mean of NN computation time (10 maturities x 20 strikes): {np.mean(nn_ti
 print(f"Standard deviation of NN computation time: {np.std(nn_times)*1000:.4f} ms")
 
 # IV NN
-checkpoint_iv = torch.load('heston_iv_nn.pth', weights_only=False)
+checkpoint_iv = torch.load('heston_iv_nn.pth', weights_only=False, map_location='cpu')
 model_iv = HestonNN_iv(input_size=9, hidden_size=128, output_size=1).to(device)
 model_iv.load_state_dict(checkpoint_iv['model_state_dict'])
 model_iv.eval()

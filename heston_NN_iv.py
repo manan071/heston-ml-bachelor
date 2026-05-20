@@ -1,7 +1,8 @@
 import numpy as np
+import pandas as pd
 import torch 
 import torch.nn as nn
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit
 from sklearn.preprocessing import StandardScaler
 import time 
 
@@ -40,9 +41,23 @@ if __name__ == "__main__":
     X = data[:,:-1]
     y = data[:,-1]
 
-    # Split the data into training set, testing set and validation set
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=1)
-    X_test, X_val, y_test, y_val = train_test_split(X_temp, y_temp, test_size=0.5, random_state=1)
+    # Prevent data leakage
+    group_cols = [1, 2, 3, 4, 5, 6, 7, 8]
+    df_X = pd.DataFrame(X)
+    groups = df_X.groupby(group_cols).ngroup().values
+
+    gss1 = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=1)
+    train_idx, temp_idx = next(gss1.split(X, y, groups=groups))
+
+    X_train, y_train = X[train_idx], y[train_idx]
+    X_temp, y_temp = X[temp_idx], y[temp_idx]
+    groups_temp = groups[temp_idx]
+
+    gss2 = GroupShuffleSplit(n_splits=1, test_size=0.5, random_state=1)
+    val_idx, test_idx = next(gss2.split(X_temp, y_temp, groups=groups_temp))
+
+    X_val, y_val = X_temp[val_idx], y_temp[val_idx]
+    X_test, y_test = X_temp[test_idx], y_temp[test_idx]
 
     # Standardize the features and target variable
     scaler_X = StandardScaler()
