@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=20)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=10)
 
     # Convert test data to PyTorch tensors
     X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
@@ -147,7 +147,7 @@ if __name__ == "__main__":
             }, 'heston_nn.pth')
         else:
             patience_counter += 1
-            if patience_counter >= 50:  # Early stopping after 50 epochs without improvement
+            if patience_counter >= 25:  # Early stopping after 25 epochs without improvement
                 print(f"Early stopping triggered at epoch {epoch}")
                 break
 
