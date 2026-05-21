@@ -1,5 +1,7 @@
 import torch
 import numpy as np
+import pandas as pd 
+from sklearn.model_selection import GroupShuffleSplit
 from heston_NN import HestonNN
 from heston_NN_iv import HestonNN as HestonNN_iv
 from heston_fft import heston_call_FFT, heston_call_price_cm
@@ -533,4 +535,83 @@ print(f"Standard deviation of FFT computation time: {np.std(fft_times)*1000:.4f}
 
 print(f"Mean of NN computation time (10 maturities x 20 strikes): {np.mean(nn_times)*1000:.4f} ms")
 print(f"Standard deviation of NN computation time: {np.std(nn_times)*1000:.4f} ms")
+"""
+"""
+# Error across moneyness using test dataset 
+atm_band=0.05
+
+# Load the generated data
+data = np.loadtxt('heston_data.txt', delimiter=',')
+X = data[:, :-1]
+y = data[:, -1]
+
+# Use the same grouped split as heston_NN.py to prevent data leakage
+group_cols = [1, 2, 3, 4, 5, 6, 7, 8]
+df_X = pd.DataFrame(X)
+groups = df_X.groupby(group_cols).ngroup().values
+
+gss1 = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=1)
+train_idx, temp_idx = next(gss1.split(X, y, groups=groups))
+
+X_temp, y_temp = X[temp_idx], y[temp_idx]
+groups_temp = groups[temp_idx]
+
+gss2 = GroupShuffleSplit(n_splits=1, test_size=0.5, random_state=1)
+val_idx, test_idx = next(gss2.split(X_temp, y_temp, groups=groups_temp))
+
+X_test = X_temp[test_idx]
+y_test = y_temp[test_idx]
+
+# Predict on the full held-out test set
+X_test_scaled = scaler_X.transform(X_test)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(device)
+
+with torch.no_grad():
+    preds_scaled = model(X_test_tensor).cpu().numpy()
+
+preds = scaler_y.inverse_transform(preds_scaled).flatten()
+actuals = y_test
+
+# Convert normalized prices from S=1 to the thesis scale S=50
+preds_scaled_to_S = preds * S
+actuals_scaled_to_S = actuals * S
+
+log_moneyness = X_test[:, 0]
+lower_atm = np.log(1 - atm_band)
+upper_atm = np.log(1 + atm_band)
+
+regions = {
+    'OTM': log_moneyness > upper_atm,
+    'Near ATM': (log_moneyness >= lower_atm) & (log_moneyness <= upper_atm),
+    'ITM': log_moneyness < lower_atm,
+}
+
+rows = []
+
+for region_name, mask in regions.items():
+    region_preds = preds_scaled_to_S[mask]
+    region_actuals = actuals_scaled_to_S[mask]
+
+    abs_error = np.abs(region_preds - region_actuals)
+    rel_error = abs_error / region_actuals
+    rmse = np.sqrt(np.mean((region_preds - region_actuals) ** 2))
+
+    rows.append({
+        'Region': region_name,
+        'Samples': mask.sum(),
+        'MAE': abs_error.mean(),
+        'Median AE': np.median(abs_error),
+        'RMSE': rmse,
+        'MRE (%)': rel_error.mean() * 100,
+        '95% AE': np.percentile(abs_error, 95),
+        '99% AE': np.percentile(abs_error, 99),
+        'Max AE': abs_error.max(),
+    })
+
+results = pd.DataFrame(rows)
+
+print('\nHeld-out test set errors grouped by moneyness')
+print(f'Absolute errors are rescaled to S={S}')
+print(f'Near ATM is defined as {1-atm_band:.2f} <= K/S <= {1+atm_band:.2f}\n')
+print(results.to_string(index=False, float_format=lambda x: f'{x:.6f}'))
 """
