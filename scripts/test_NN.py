@@ -1,7 +1,8 @@
 import torch
 import numpy as np
-from heston_NN import HestonNN
-from utils import nn_price
+
+from src.heston_NN import HestonNN
+from src.utils import nn_price
 
 # Set device
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')

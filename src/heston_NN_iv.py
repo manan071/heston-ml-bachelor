@@ -27,7 +27,7 @@ class HestonNN(nn.Module):
 
 if __name__ == "__main__":
     # Load the generated data
-    data = np.loadtxt("heston_data.txt", delimiter=",")
+    data = np.loadtxt("heston_data_iv.txt", delimiter=",")
 
     # Set GPU
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=10)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=10)
 
     # Convert test data to PyTorch tensors
     X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
-    for epoch in range(150):
+    for epoch in range(200):
         model.train()
         epoch_loss = 0.0
 
@@ -131,7 +131,7 @@ if __name__ == "__main__":
             print(training_log)
 
             # Write training log to file
-            with open("training_log.txt", "a") as f:
+            with open("training_log_iv.txt", "a") as f:
                 f.write(training_log + "\n")
 
         # Early stopping based on validation loss and save the best model
@@ -144,7 +144,7 @@ if __name__ == "__main__":
                 'model_state_dict': model.state_dict(),
                 'scaler_X': scaler_X,
                 'scaler_y': scaler_y
-            }, 'heston_nn.pth')
+            }, 'heston_nn_iv.pth')
         else:
             patience_counter += 1
             if patience_counter >= 25:  # Early stopping after 25 epochs without improvement
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     print()
 
     # Load the best model for evaluation
-    checkpoint = torch.load('heston_nn.pth', weights_only=False)
+    checkpoint = torch.load('heston_nn_iv.pth', weights_only=False)
     model.load_state_dict(checkpoint['model_state_dict'])
     print("Best model loaded for evaluation.")
 
@@ -166,10 +166,10 @@ if __name__ == "__main__":
     test_input = torch.tensor(test_input_standardized, dtype=torch.float32).to(device)
 
     with torch.no_grad():
-        nn_price  = model(test_input)
-        nn_price = scaler_y.inverse_transform(nn_price.cpu().numpy())
+        nn_iv  = model(test_input)
+        nn_iv = scaler_y.inverse_transform(nn_iv.cpu().numpy())
 
-    print(nn_price[0][0]*100)
+    print(nn_iv[0][0])
 
     print()
 
@@ -177,20 +177,15 @@ if __name__ == "__main__":
         preds   = scaler_y.inverse_transform(model(X_test).cpu().numpy()).flatten()
         actuals = scaler_y.inverse_transform(y_test.cpu().numpy()).flatten()
 
-    # Filter out very small prices
-    mask = actuals > 0.01  # only prices above 1% of S=1
-    preds_f   = preds[mask]
-    actuals_f = actuals[mask]
-
     # Relative error statistics
-    rel_error = np.abs(preds_f - actuals_f) / actuals_f
+    rel_error = np.abs(preds - actuals) / np.maximum(actuals, 1e-8)
     print(f"Mean relative error:   {rel_error.mean()*100:.2f}%")
     print(f"Median relative error: {np.median(rel_error)*100:.2f}%")
     print(f"Max relative error:    {rel_error.max()*100:.2f}%")
-    print(f"Samples evaluated:     {mask.sum()}")
+    print(f"Samples evaluated:     {len(preds)}")
 
     # Absolute error statistics
-    abs_error = np.abs(preds_f - actuals_f)
+    abs_error = np.abs(preds - actuals)
     print(f"Mean absolute error:   {abs_error.mean()*100:.4f}")
     print(f"Median absolute error: {np.median(abs_error)*100:.4f}")
     print(f"Max absolute error:    {abs_error.max()*100:.4f}")

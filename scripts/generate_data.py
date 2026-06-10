@@ -1,5 +1,6 @@
 import numpy as np
-import heston_fft as hf
+
+from src import heston_fft as hf
 
 # Randomly save the parmeters for creatig training data
 def random_parameters():

@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-import heston_fft as hfft
-import heston_model as hm
+
+from src import heston_fft as hfft
+from src import heston_model as hm
 
 # Baseline parameter test cases
 testcases = [

@@ -1,7 +1,8 @@
 import numpy as np
-from heston_model import heston_price
-from heston_fft import heston_call_FFT, heston_call_price_cm
-import generate_data as gd
+
+from src.heston_model import heston_price
+from src.heston_fft import heston_call_FFT, heston_call_price_cm
+from scripts import generate_data as gd
 
 # Test of the Heston model implementation with given parameters
 price_testP = heston_price(PutCall='P', S=100, K=100, tau=0.5, kappa=5, theta=0.05, sigma=0.5, rho=-0.8, v0=0.05, 

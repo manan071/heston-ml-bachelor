@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from heston_fft import heston_call_FFT
-from heston_model import heston_price
-import utils as utils 
 import time as time
+
+from src.heston_fft import heston_call_FFT
+from src.heston_model import heston_price
+from src import utils as utils 
 
 # Parameters
 S=50 
